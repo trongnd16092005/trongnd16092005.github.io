@@ -1,12 +1,16 @@
 package com.example.multiclock;
 
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
+import javafx.stage.Stage;
 import java.net.URL;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
@@ -17,19 +21,17 @@ import java.util.TimeZone;
 public class ClockController implements Initializable {
 
     @FXML
-    private Label clockLabel;
+    Label clockLabel;
     @FXML
     Button openBut;
-
     @FXML
     Text clockText;
-
     @FXML
     TextField GMTText;
+    @FXML
+    Label Clock2Label;
     private volatile boolean runningClock1 = true;
     private volatile boolean runningClock2 = true;
-    boolean status1=true;
-    boolean status2=false;
 
 
 
@@ -43,8 +45,6 @@ public class ClockController implements Initializable {
         clock(timeZoneOffset);
     }
     public void clock(int timeZoneOffset){
-         status1=true;
-         status2=false;
          clockCurrent = new Thread(() -> {
             DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
             while (runningClock1) {
@@ -63,17 +63,28 @@ public class ClockController implements Initializable {
         });
         clockCurrent.start();
     }
-    public boolean clock2(int timeZoneOffset){
-        status2=true;
-        status1=false;
+    @FXML
+    public void handleCloseButtonAction() {
+        runningClock1=false;
+        runningClock2=false;
+        Platform.exit();
+    }
+    public void openNewStage(ActionEvent event) {
+        Stage stage2 = new Stage();
+        stage2.setTitle("Stage 2");
+        Label clock = new Label();
+        int timeZoneOffset= Integer.parseInt(GMTText.getText());
+        if(timeZoneOffset<-12 || timeZoneOffset>12){
+            clockText.setText("Please try again!");
+        }else{
         clockGMT = new Thread(() -> {
             DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss");
             while (runningClock2) {
-                ZoneOffset zoneOffset=ZoneOffset.ofHours(timeZoneOffset);
+                ZoneOffset zoneOffset=ZoneOffset.ofHours(Integer.parseInt(GMTText.getText()));
                 LocalTime currentTime = LocalTime.now(zoneOffset);
                 String formattedTime = currentTime.format(dateTimeFormatter);
                 Platform.runLater(() -> {
-                    clockLabel.setText(formattedTime);
+                    clock.setText(formattedTime);
                 });
                 try {
                     Thread.sleep(1000);
@@ -83,29 +94,9 @@ public class ClockController implements Initializable {
             }
         });
         clockGMT.start();
-        return status2;
-    }
-    @FXML
-    public void handleCloseButtonAction() {
-        runningClock1=false;
-        runningClock2=false;
-        Platform.exit();
-    }
-    public void setUpClock(){
-        int timeZoneOffset= Integer.parseInt(GMTText.getText());
-        if(timeZoneOffset<-12 || timeZoneOffset>12){
-            clockText.setText("Please try again!");
-        }else {
-            if (!status1 && status2) {
-                runningClock2 = false;
-                runningClock1 = true;
-                clock(timeZoneOffset);
-            } else {
-                runningClock1 = false;
-                runningClock2 = true;
-                clock2(timeZoneOffset);
-            }
-
         }
+        StackPane root = new StackPane(clock);
+        stage2.setScene(new Scene(root,200,200));
+        stage2.show();
     }
 }
